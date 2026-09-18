@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <utility>
+#include <concepts>
 
 namespace ownd {
 
@@ -36,14 +37,33 @@ namespace ownd {
             Swap(copy);
 
             return *this;
-        } 
+        }
+        
+        template<typename U>
+        requires std::convertible_to<U*, T*>
+        Strong(const Strong<U>& other) noexcept 
+            : m_Pointer(other.m_Pointer)
+            , m_ControlBlock(other.m_ControlBlock)
+            {
+            if (m_ControlBlock != nullptr)
+                m_ControlBlock->AddStrong();
+        }
+        
+        template<typename U>
+        requires std::convertible_to<U*, T*>
+        Strong& operator=(const Strong<U>& other) noexcept {
+            Strong converted(other);
+            Swap(converted);
+            return *this;
+        }
 
         Strong(Strong&& o) noexcept
             : m_Pointer(std::exchange(o.m_Pointer, nullptr))
             , m_ControlBlock(std::exchange(o.m_ControlBlock, nullptr))
             {}
         
-        Strong& operator=(Strong&& o) noexcept {
+        
+        Strong& operator=(const Strong&& o) noexcept {
             if (this == &o) return *this;
 
             Reset();
@@ -51,6 +71,21 @@ namespace ownd {
             m_Pointer = std::exchange(o.m_Pointer, nullptr);
             m_ControlBlock = std::exchange(o.m_ControlBlock, nullptr);
 
+            return *this;
+        }
+        
+        template<typename U>
+        requires std::convertible_to<U*, T*>
+        Strong(Strong<U>&& other) noexcept
+            : m_Pointer(std::exchange(other.m_Pointer, nullptr))
+            , m_ControlBlock(std::exchange(other.m_ControlBlock, nullptr))
+            {}
+        
+        template<typename U>
+        requires std::convertible_to<U*, T*>
+        Strong& operator=(const Strong<U>&& other) noexcept {
+            Strong converted(std::move(other));
+            Swap(converted);
             return *this;
         }
 
@@ -109,6 +144,9 @@ namespace ownd {
         
         template<typename U, typename... Args>
         friend Strong<U> MakeStrong(Args&&... args);
+
+        template<typename U>
+        friend class Strong;
     
     private:
         T* m_Pointer{ nullptr };
