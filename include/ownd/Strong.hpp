@@ -21,8 +21,22 @@ namespace ownd {
         constexpr Strong() noexcept = default;
         constexpr Strong(std::nullptr_t) noexcept {};
 
-        Strong(const Strong&) = delete;
-        Strong& operator=(const Strong&) = delete;
+        Strong(const Strong& o) noexcept
+            : m_Pointer(o.m_Pointer)
+            , m_ControlBlock(o.m_ControlBlock)
+            {
+            if (m_ControlBlock != nullptr)
+                m_ControlBlock->AddStrong();
+        }
+
+        Strong& operator=(const Strong& o) noexcept {
+            if (this == &o) return *this;
+
+            Strong copy(o);
+            Swap(copy);
+
+            return *this;
+        } 
 
         Strong(Strong&& o) noexcept
             : m_Pointer(std::exchange(o.m_Pointer, nullptr))
@@ -50,6 +64,11 @@ namespace ownd {
         
             m_Pointer = nullptr;
             m_ControlBlock = nullptr;
+        }
+
+        void Swap(Strong& other) noexcept {
+            std::swap(m_Pointer, other.m_Pointer);
+            std::swap(m_ControlBlock, other.m_ControlBlock);
         }
 
         [[nodiscard]]
