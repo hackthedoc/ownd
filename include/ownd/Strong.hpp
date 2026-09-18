@@ -1,7 +1,7 @@
 #pragma once
 
 #include "detail/ControlBlock.hpp"
-#include "detail/PointerControlBlock.hpp"
+#include "detail/InplaceControlBlock.hpp"
 
 #include <cstddef>
 #include <utility>
@@ -19,7 +19,7 @@ namespace ownd {
     class Strong {
     public:
         constexpr Strong() noexcept = default;
-        constexpr Strong(std::nullptr_t) noexcept {};
+        constexpr Strong(std::nullptr_t) noexcept {}
 
         Strong(const Strong& o) noexcept
             : m_Pointer(o.m_Pointer)
@@ -43,7 +43,7 @@ namespace ownd {
             , m_ControlBlock(std::exchange(o.m_ControlBlock, nullptr))
             {}
         
-        Strong& operator=(const Strong&& o) noexcept {
+        Strong& operator=(Strong&& o) noexcept {
             if (this == &o) return *this;
 
             Reset();
@@ -118,7 +118,7 @@ namespace ownd {
     template<typename T, typename... Args>
     [[nodiscard]]
     Strong<T> MakeStrong(Args&&... args) {
-        auto* controlBlock = new detail::PointerControlBlock<T>(std::forward<Args>(args)...);
+        auto* controlBlock = new detail::InplaceControlBlock<T>(std::forward<Args>(args)...);
         return Strong<T>(controlBlock->Get(), controlBlock);
     }
 

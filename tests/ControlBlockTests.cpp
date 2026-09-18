@@ -1,7 +1,7 @@
 #include <doctest/doctest.h>
 
 #include <ownd/detail/ControlBlock.hpp>
-#include <ownd/detail/PointerControlBlock.hpp>
+#include <ownd/detail/InplaceControlBlock.hpp>
 
 namespace {
 
@@ -32,16 +32,16 @@ namespace {
 
     struct LifetimeProbe {
         LifetimeProbe(int initialValue, bool& destroyed)
-            : m_Value(initialValue)
-            , m_Destroyed(destroyed)
+            : Value(initialValue)
+            , Destroyed(destroyed)
             {}
         
         ~LifetimeProbe() {
-            m_Destroyed = true;
+            Destroyed = true;
         }
 
-        int m_Value;
-        bool& m_Destroyed;
+        int Value;
+        bool& Destroyed;
     };
 
 }
@@ -79,13 +79,13 @@ TEST_CASE("ControlBlock destroys its payload on final release") {
     CHECK(blockDestructions == 1);
 }
 
-TEST_CASE("PointerControlBlock owns its object") {
+TEST_CASE("InplaceControlBlock constructs and destroys its object") {
     bool destroyed = false;
-    
-    auto* block = new ownd::detail::PointerControlBlock<LifetimeProbe>(42, destroyed);
+
+    auto* block = new ownd::detail::InplaceControlBlock<LifetimeProbe>(42, destroyed);
 
     CHECK(block->Get() != nullptr);
-    CHECK(block->Get()->m_Value == 42);
+    CHECK(block->Get()->Value == 42);
     CHECK_FALSE(destroyed);
 
     block->ReleaseStrong();

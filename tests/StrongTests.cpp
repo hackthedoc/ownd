@@ -1,4 +1,5 @@
 #include <doctest/doctest.h>
+#include <stdexcept>
 
 #include <ownd/Strong.hpp>
 
@@ -16,6 +17,13 @@ namespace {
 
         int Value;
         bool& Destroyed;
+    };
+
+    struct ThrowingObject {
+        explicit ThrowingObject(bool& constructorCalled) {
+            constructorCalled = true;
+            throw std::runtime_error("construction failed");
+        }
     };
 
 }
@@ -157,4 +165,11 @@ TEST_CASE("Strong swaps ownership") {
 
     CHECK(first.UseCount() == 1);
     CHECK(second.UseCount() == 1);
+}
+
+TEST_CASE("MakeStrong propagates constructors exceptions") {
+    bool constructorCalled = false;
+
+    CHECK_THROWS_AS(static_cast<void>(ownd::MakeStrong<ThrowingObject>(constructorCalled)), std::runtime_error);
+    CHECK(constructorCalled);
 }
