@@ -107,3 +107,54 @@ TEST_CASE("Strong supports self assignment") {
     CHECK(object.UseCount() == 1);
     CHECK_FALSE(destroyed);
 }
+
+TEST_CASE("Strong compares with nullptr") {
+    ownd::Strong<TestObject> empty;
+
+    CHECK(empty == nullptr);
+    CHECK(nullptr == empty);
+    CHECK_FALSE(empty != nullptr);
+
+    bool destroyed = false;
+    auto object = ownd::MakeStrong<TestObject>(42, destroyed);
+
+    CHECK(object != nullptr);
+    CHECK(nullptr != object);
+}
+
+TEST_CASE("Strong compares stored pointers") {
+    bool firstDestroyed = false;
+    bool secondDestroyed = false;
+
+    auto first = ownd::MakeStrong<TestObject>(42, firstDestroyed);
+    auto copy = first;
+    auto separate = ownd::MakeStrong<TestObject>(42, secondDestroyed);
+
+    CHECK(first == copy);
+    CHECK_FALSE(first != copy);
+
+    CHECK(first != separate);
+    CHECK_FALSE(first == separate);
+}
+
+TEST_CASE("Strong swaps ownership") {
+    bool firstDestroyed = false;
+    bool secondDestroyed = false;
+
+    auto first = ownd::MakeStrong<TestObject>(1, firstDestroyed);
+    auto second = ownd::MakeStrong<TestObject>(2, secondDestroyed);
+
+    TestObject* firstPointer = first.Get();
+    TestObject* secondPointer = second.Get();
+
+    ownd::Swap(first, second);
+
+    CHECK(first.Get() == secondPointer);
+    CHECK(second.Get() == firstPointer);
+
+    CHECK(first->Value == 2);
+    CHECK(second->Value == 1);
+
+    CHECK(first.UseCount() == 1);
+    CHECK(second.UseCount() == 1);
+}

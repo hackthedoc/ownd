@@ -89,6 +89,18 @@ namespace ownd {
             return m_ControlBlock->UseCount();
         }
 
+        friend bool operator==(const Strong& left, const Strong& right) noexcept {
+            return left.Get() == right.Get();
+        }
+
+        friend bool operator==(const Strong& pointer, std::nullptr_t) noexcept {
+            return pointer.Get() == nullptr;
+        }
+
+        friend bool operator==(std::nullptr_t, const Strong& pointer) noexcept {
+            return pointer.Get() == nullptr;
+        }
+
     private:
         Strong(T* pointer, detail::ControlBlock* controlBlock) noexcept
             : m_Pointer(pointer)
@@ -108,6 +120,11 @@ namespace ownd {
     Strong<T> MakeStrong(Args&&... args) {
         auto* controlBlock = new detail::PointerControlBlock<T>(std::forward<Args>(args)...);
         return Strong<T>(controlBlock->Get(), controlBlock);
+    }
+
+    template<typename T>
+    void Swap(Strong<T>& left, Strong<T>& right) noexcept {
+        left.Swap(right);
     }
 
 } // namespace ownd
