@@ -1,0 +1,16 @@
+[
+{
+  "directory": "A:\\Dev\\ownd",
+  "arguments": ["A:\\Libs\\msys64\\ucrt64\\bin\\x86_64-w64-mingw32-g++.exe", "-c", "-m64", "-g", "-Wall", "-Wextra", "-O0", "-std=c++23", "-Ivendors", "-Iinclude", "-o", "build\\.objs\\ownd_tests\\mingw\\x86_64\\debug\\tests\\ControlBlockTests.cpp.obj", "tests\\ControlBlockTests.cpp"],
+  "file": "tests\\ControlBlockTests.cpp"
+},
+{
+  "directory": "A:\\Dev\\ownd",
+  "arguments": ["A:\\Libs\\msys64\\ucrt64\\bin\\x86_64-w64-mingw32-g++.exe", "-c", "-m64", "-g", "-Wall", "-Wextra", "-O0", "-std=c++23", "-Ivendors", "-Iinclude", "-o", "build\\.objs\\ownd_tests\\mingw\\x86_64\\debug\\tests\\main.cpp.obj", "tests\\main.cpp"],
+  "file": "tests\\main.cpp"
+},
+{
+  "directory": "A:\\Dev\\ownd",
+  "arguments": ["A:\\Libs\\msys64\\ucrt64\\bin\\x86_64-w64-mingw32-g++.exe", "-c", "-m64", "-g", "-Wall", "-Wextra", "-O0", "-std=c++23", "-Ivendors", "-Iinclude", "-o", "build\\.objs\\ownd_tests\\mingw\\x86_64\\debug\\tests\\StrongTests.cpp.obj", "tests\\StrongTests.cpp"],
+  "file": "tests\\StrongTests.cpp"
+}]
