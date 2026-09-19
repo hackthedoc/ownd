@@ -16,10 +16,12 @@ namespace ownd::detail {
         ControlBlock& operator=(ControlBlock&&) = delete;
 
         void AddStrong() noexcept {
+            // Existing ownership keeps the control block alive, so no synchronization beyond the atomic increment is required
             m_StrongCount.fetch_add(1, std::memory_order_relaxed);
         }
 
         void ReleaseStrong() noexcept {
+            // The thread releasing the final owner acquires all preceding ownership operations before destroying the payload
             if (m_StrongCount.fetch_sub(1, std::memory_order_acq_rel) == 1) {
                 DestroyPayload();
                 DestroyBlock();
@@ -28,6 +30,7 @@ namespace ownd::detail {
 
         [[nodiscard]]
         std::size_t UseCount() const noexcept {
+            // Diagnostic snapshot only; not a synchronization primitive
             return m_StrongCount.load(std::memory_order_relaxed);
         }
 
@@ -39,7 +42,7 @@ namespace ownd::detail {
         virtual void DestroyBlock() noexcept = 0;
 
     private:
-        std::atomic<size_t> m_StrongCount{1};
+        std::atomic<size_t> m_StrongCount{ 1 };
     };
 
 } // namespace ownd::detail

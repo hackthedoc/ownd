@@ -1,29 +1,20 @@
-#include <doctest/doctest.h>
-
 #include <ownd/detail/ControlBlock.hpp>
 #include <ownd/detail/InplaceControlBlock.hpp>
 
+#include <doctest/doctest.h>
+
 namespace {
 
-    class TestControlBlock : public ownd::detail::ControlBlock {
+    class TestControlBlock final : public ownd::detail::ControlBlock {
     public:
-        TestControlBlock(int& payloadDestructions, int& blockDestructions) noexcept
-            : m_PayloadDestructions(payloadDestructions)
-            , m_BlockDestructions(blockDestructions) 
-            {}
+        TestControlBlock(int& payloadDestructions, int& blockDestructions) noexcept : m_PayloadDestructions(payloadDestructions), m_BlockDestructions(blockDestructions) {}
 
-        ~TestControlBlock() override {
-            ++m_BlockDestructions;
-        };
+        ~TestControlBlock() override { m_BlockDestructions++; }
 
     private:
-        void DestroyPayload() noexcept override {
-            ++m_PayloadDestructions;
-        }
+        void DestroyPayload() noexcept override { m_PayloadDestructions++; }
 
-        void DestroyBlock() noexcept override {
-            delete this;
-        }
+        void DestroyBlock() noexcept override { delete this; }
 
     private:
         int& m_PayloadDestructions;
@@ -31,14 +22,9 @@ namespace {
     };
 
     struct LifetimeProbe {
-        LifetimeProbe(int initialValue, bool& destroyed)
-            : Value(initialValue)
-            , Destroyed(destroyed)
-            {}
-        
-        ~LifetimeProbe() {
-            Destroyed = true;
-        }
+        LifetimeProbe(int initialValue, bool& destroyed) : Value(initialValue), Destroyed(destroyed) {}
+
+        ~LifetimeProbe() { Destroyed = true; }
 
         int Value;
         bool& Destroyed;
@@ -67,14 +53,17 @@ TEST_CASE("ControlBlock destroys its payload on final release") {
     TestControlBlock* controlBlock = new TestControlBlock(payloadDestructions, blockDestructions);
 
     controlBlock->AddStrong();
+
     CHECK(controlBlock->UseCount() == 2);
 
     controlBlock->ReleaseStrong();
+
     CHECK(controlBlock->UseCount() == 1);
     CHECK(payloadDestructions == 0);
     CHECK(blockDestructions == 0);
 
     controlBlock->ReleaseStrong();
+
     CHECK(payloadDestructions == 1);
     CHECK(blockDestructions == 1);
 }
@@ -84,8 +73,14 @@ TEST_CASE("InplaceControlBlock constructs and destroys its object") {
 
     auto* block = new ownd::detail::InplaceControlBlock<LifetimeProbe>(42, destroyed);
 
+    const auto* constBlock = block;
+
     CHECK(block->Get() != nullptr);
     CHECK(block->Get()->Value == 42);
+
+    CHECK(constBlock->Get() != nullptr);
+    CHECK(constBlock->Get()->Value == 42);
+
     CHECK_FALSE(destroyed);
 
     block->ReleaseStrong();

@@ -17,6 +17,13 @@ namespace ownd {
     [[nodiscard]]
     Strong<T> MakeStrong(Args&&... args);
 
+    /**
+     * Shared-ownership handle for a single object.
+     *
+     * Distinct Strong handles sharing the same control block may be used concurrently.
+     * Concurent mutation of the same Strong handle is not yet supported.
+     * Access to the owned object is not synchronized.
+     */
     template<typename T>
     class Strong {
     public:
@@ -92,7 +99,7 @@ namespace ownd {
         
         template<typename U>
         requires std::convertible_to<U*, T*>
-        Strong& operator=(const Strong<U>&& other) noexcept {
+        Strong& operator=(Strong<U>&& other) noexcept {
             Strong converted(std::move(other));
             Swap(converted);
             return *this;
@@ -127,6 +134,11 @@ namespace ownd {
         [[nodiscard]]
         explicit operator bool() const noexcept { return m_Pointer != nullptr; }
 
+        /**
+         * Returns a snapshot of the current strong-owner count.
+         * 
+         * * The result must not be used to infer exclusive access.
+         */
         [[nodiscard]]
         std::size_t UseCount() const noexcept {
             if (m_ControlBlock == nullptr) return 0;
@@ -150,6 +162,9 @@ namespace ownd {
         detail::ControlBlock* m_ControlBlock{ nullptr };
     };
 
+    /**
+     * Constructs an object and its control block in one allocation.
+     */
     template<typename T, typename... Args>
     [[nodiscard]]
     Strong<T> MakeStrong(Args&&... args) {
@@ -160,7 +175,7 @@ namespace ownd {
     template<typename T, typename U>
     requires std::equality_comparable_with<T*, U*>
     [[nodiscard]]
-    bool operator==(const Strong<U>& left, const Strong<T>& right) noexcept {
+    bool operator==(const Strong<T>& left, const Strong<U>& right) noexcept {
         return left.Get() == right.Get();
     }
 

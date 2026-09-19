@@ -28,7 +28,7 @@ namespace ownd::detail {
         T* StorageAddress() noexcept { return reinterpret_cast<T*>(m_Storage); }
 
         [[nodiscard]]
-        const T* StorageAddress() const noexcept { return reinterpret_cast<T*>(m_Storage); }
+        const T* StorageAddress() const noexcept { return reinterpret_cast<const T*>(m_Storage); }
         
         void DestroyPayload() noexcept override { std::destroy_at(Get()); }
         

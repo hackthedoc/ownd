@@ -1,10 +1,5 @@
 #pragma once
 
-namespace ownd {
+#include <ownd/Version.hpp>
 
-inline constexpr unsigned int VERSION_MAJOR = 0;
-inline constexpr unsigned int VERSION_MINOR = 1;
-inline constexpr unsigned int VERSION_PATCH = 0;
-
-} // namespace ownd
- 
+#include <ownd/Strong.hpp>
