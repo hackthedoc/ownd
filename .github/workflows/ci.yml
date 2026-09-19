@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.compiler }} / ${{ matrix.mode }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: GCC
+            toolchain: gcc
+            platform: linux
+            arch: x86_64
+            mode: debug
+
+          - os: ubuntu-latest
+            compiler: GCC
+            toolchain: gcc
+            platform: linux
+            arch: x86_64
+            mode: release
+
+          - os: ubuntu-latest
+            compiler: Clang
+            toolchain: clang
+            platform: linux
+            arch: x86_64
+            mode: debug
+
+          - os: ubuntu-latest
+            compiler: Clang
+            toolchain: clang
+            platform: linux
+            arch: x86_64
+            mode: release
+
+          - os: windows-latest
+            compiler: MSVC
+            toolchain: msvc
+            platform: windows
+            arch: x64
+            mode: debug
+
+          - os: windows-latest
+            compiler: MSVC
+            toolchain: msvc
+            platform: windows
+            arch: x64
+            mode: release
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+          package-cache: true
+          project-path: .
+
+      - name: Configure
+        run: >-
+          xmake f -c
+          -p ${{ matrix.platform }}
+          -a ${{ matrix.arch }}
+          -m ${{ matrix.mode }}
+          --toolchain=${{ matrix.toolchain }}
+          --tests=y
+
+      - name: Build
+        run: xmake -vD
+
+      - name: Run tests
+        run: xmake run ownd_tests
