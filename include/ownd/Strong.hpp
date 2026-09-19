@@ -4,6 +4,7 @@
 #include "detail/InplaceControlBlock.hpp"
 
 #include <cstddef>
+#include <type_traits>
 #include <utility>
 #include <concepts>
 
@@ -19,21 +20,29 @@ namespace ownd {
     template<typename T>
     class Strong {
     public:
+        static_assert(std::is_object_v<T>, "ownd::Strong<T> requires T to be an object type");
+        static_assert(!std::is_array_v<T>, "ownd::Strong<T> does not support arrays yet");
+
         constexpr Strong() noexcept = default;
         constexpr Strong(std::nullptr_t) noexcept {}
+        
+        Strong& operator=(std::nullptr_t) noexcept {
+            Reset();
+            return *this;
+        }
 
-        Strong(const Strong& o) noexcept
-            : m_Pointer(o.m_Pointer)
-            , m_ControlBlock(o.m_ControlBlock)
+        Strong(const Strong& other) noexcept
+            : m_Pointer(other.m_Pointer)
+            , m_ControlBlock(other.m_ControlBlock)
             {
             if (m_ControlBlock != nullptr)
                 m_ControlBlock->AddStrong();
         }
 
-        Strong& operator=(const Strong& o) noexcept {
-            if (this == &o) return *this;
+        Strong& operator=(const Strong& other) noexcept {
+            if (this == &other) return *this;
 
-            Strong copy(o);
+            Strong copy(other);
             Swap(copy);
 
             return *this;
@@ -57,19 +66,19 @@ namespace ownd {
             return *this;
         }
 
-        Strong(Strong&& o) noexcept
-            : m_Pointer(std::exchange(o.m_Pointer, nullptr))
-            , m_ControlBlock(std::exchange(o.m_ControlBlock, nullptr))
+        Strong(Strong&& other) noexcept
+            : m_Pointer(std::exchange(other.m_Pointer, nullptr))
+            , m_ControlBlock(std::exchange(other.m_ControlBlock, nullptr))
             {}
         
         
-        Strong& operator=(const Strong&& o) noexcept {
-            if (this == &o) return *this;
+        Strong& operator=(Strong&& other) noexcept {
+            if (this == &other) return *this;
 
             Reset();
 
-            m_Pointer = std::exchange(o.m_Pointer, nullptr);
-            m_ControlBlock = std::exchange(o.m_ControlBlock, nullptr);
+            m_Pointer = std::exchange(other.m_Pointer, nullptr);
+            m_ControlBlock = std::exchange(other.m_ControlBlock, nullptr);
 
             return *this;
         }
@@ -123,19 +132,7 @@ namespace ownd {
             if (m_ControlBlock == nullptr) return 0;
             return m_ControlBlock->UseCount();
         }
-
-        friend bool operator==(const Strong& left, const Strong& right) noexcept {
-            return left.Get() == right.Get();
-        }
-
-        friend bool operator==(const Strong& pointer, std::nullptr_t) noexcept {
-            return pointer.Get() == nullptr;
-        }
-
-        friend bool operator==(std::nullptr_t, const Strong& pointer) noexcept {
-            return pointer.Get() == nullptr;
-        }
-
+        
     private:
         Strong(T* pointer, detail::ControlBlock* controlBlock) noexcept
             : m_Pointer(pointer)
@@ -158,6 +155,25 @@ namespace ownd {
     Strong<T> MakeStrong(Args&&... args) {
         auto* controlBlock = new detail::InplaceControlBlock<T>(std::forward<Args>(args)...);
         return Strong<T>(controlBlock->Get(), controlBlock);
+    }
+    
+    template<typename T, typename U>
+    requires std::equality_comparable_with<T*, U*>
+    [[nodiscard]]
+    bool operator==(const Strong<U>& left, const Strong<T>& right) noexcept {
+        return left.Get() == right.Get();
+    }
+
+    template<typename T>
+    [[nodiscard]]
+    bool operator==(const Strong<T>& pointer, std::nullptr_t) noexcept {
+        return pointer.Get() == nullptr;
+    }
+
+    template<typename T>
+    [[nodiscard]]
+    bool operator==(std::nullptr_t, const Strong<T>& pointer) noexcept {
+        return pointer.Get() == nullptr;
     }
 
     template<typename T>

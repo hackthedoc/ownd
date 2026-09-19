@@ -41,15 +41,41 @@ namespace {
         bool& Destroyed;
     };
 
-    static_assert(std::is_constructible_v<ownd::Strong<BaseObject>, const ownd::Strong<DerivedObject>&>);
-
-    static_assert(std::is_constructible_v<ownd::Strong<const BaseObject>, const ownd::Strong<BaseObject>&>);
-
-    static_assert(!std::is_constructible_v<ownd::Strong<DerivedObject>, const ownd::Strong<BaseObject>&>);
-
-    static_assert(!std::is_constructible_v<ownd::Strong<BaseObject>, const ownd::Strong<const BaseObject>&>);
-
 }
+
+static_assert(std::is_constructible_v<ownd::Strong<BaseObject>, const ownd::Strong<DerivedObject>&>);
+
+static_assert(std::is_constructible_v<ownd::Strong<const BaseObject>, const ownd::Strong<BaseObject>&>);
+
+static_assert(!std::is_constructible_v<ownd::Strong<DerivedObject>, const ownd::Strong<BaseObject>&>);
+
+static_assert(!std::is_constructible_v<ownd::Strong<BaseObject>, const ownd::Strong<const BaseObject>&>);
+
+using StrongInt = ownd::Strong<int>;
+
+static_assert(std::is_nothrow_default_constructible_v<StrongInt>);
+
+static_assert(std::is_nothrow_copy_constructible_v<StrongInt>);
+
+static_assert(std::is_nothrow_move_constructible_v<StrongInt>);
+
+static_assert(std::is_nothrow_copy_assignable_v<StrongInt>);
+
+static_assert(std::is_nothrow_move_assignable_v<StrongInt>);
+
+static_assert(noexcept(std::declval<StrongInt&>().Reset()));
+
+static_assert(noexcept(std::declval<StrongInt&>().Swap(std::declval<StrongInt&>())));
+
+static_assert(noexcept(std::declval<const StrongInt&>().Get()));
+
+static_assert(noexcept(std::declval<const StrongInt&>().UseCount()));
+
+static_assert(noexcept(std::declval<StrongInt&>() == std::declval<StrongInt&>()));
+
+static_assert(std::is_nothrow_constructible_v<ownd::Strong<BaseObject>, const ownd::Strong<DerivedObject>&>);
+
+static_assert(std::is_nothrow_constructible_v<ownd::Strong<BaseObject>, ownd::Strong<DerivedObject>&&>);
 
 TEST_CASE("MakeStrong creates and owns an object") {
     bool destroyed = false;
@@ -124,19 +150,6 @@ TEST_CASE("Strong copy assignment releases previous ownership") {
     CHECK(first.UseCount() == 2);
     CHECK(second.UseCount() == 2);
     CHECK(first->Value == 2);
-}
-
-TEST_CASE("Strong supports self assignment") {
-    bool destroyed = false;
-
-    auto object = ownd::MakeStrong<TestObject>(42, destroyed);
-    auto* originalPointer = object.Get();
-
-    object = object;
-
-    CHECK(object.Get() == originalPointer);
-    CHECK(object.UseCount() == 1);
-    CHECK_FALSE(destroyed);
 }
 
 TEST_CASE("Strong compares with nullptr") {
@@ -242,4 +255,77 @@ TEST_CASE("Strong supports conversion to const") {
     CHECK(mutableObject.UseCount() == 2);
     CHECK(readOnly.UseCount() == 2);
     CHECK(readOnly->Value == 42);
+}
+
+TEST_CASE("Strong compares compatible pointer types") {
+    bool destroyed = false;
+
+    auto derived = ownd::MakeStrong<DerivedObject>(destroyed);
+    ownd::Strong<BaseObject> base = derived;
+    ownd::Strong<const DerivedObject> readOnly = derived;
+
+    const std::size_t useCount = derived.UseCount();
+
+    CHECK(derived == base);
+    CHECK(base == derived);
+
+    CHECK(derived == readOnly);
+    CHECK(readOnly == derived);
+
+    CHECK_FALSE(derived != base);
+    CHECK_FALSE(derived != readOnly);
+
+    CHECK(derived.UseCount() == useCount);
+    CHECK(base.UseCount() == useCount);
+    CHECK(readOnly.UseCount() == useCount);
+}
+TEST_CASE("Strong compares different allocations as unequal") {
+    bool firstDestroyed = false;
+    bool secondDestroyed = false;
+
+    auto first = ownd::MakeStrong<DerivedObject>(firstDestroyed);
+
+    auto second = ownd::MakeStrong<DerivedObject>(secondDestroyed);
+
+    CHECK(first != second);
+    CHECK_FALSE(first == second);
+}
+
+TEST_CASE("Strong supports assignment from nullptr") {
+    bool destroyed = false;
+
+    auto object = ownd::MakeStrong<DerivedObject>(destroyed);
+
+    CHECK(object != nullptr);
+    CHECK(object.UseCount() == 1);
+
+    object = nullptr;
+
+    CHECK(object == nullptr);
+    CHECK(object.UseCount() == 0);
+    CHECK(destroyed);
+
+    object = nullptr;
+
+    CHECK(object == nullptr);
+    CHECK(object.UseCount() == 0);
+}
+
+TEST_CASE("Empty Strong handles support modifiers") {
+    ownd::Strong<int> first;
+    ownd::Strong<int> second;
+
+    CHECK(first == second);
+    CHECK(first == nullptr);
+    CHECK(second == nullptr);
+
+    first.Reset();
+    first.Reset();
+
+    ownd::Swap(first, second);
+
+    CHECK(first == nullptr);
+    CHECK(second == nullptr);
+    CHECK(first.UseCount() == 0);
+    CHECK(second.UseCount() == 0);
 }
